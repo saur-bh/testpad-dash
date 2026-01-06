@@ -4,7 +4,7 @@ import {
   FolderOpen, CheckSquare, TrendingUp,
   Loader2, Copy, Filter, LayoutDashboard,
   Search, PanelLeftClose, PanelLeftOpen, BarChart3,
-  RefreshCw, AlertCircle, CheckCircle, ChevronDown
+  RefreshCw, AlertCircle, CheckCircle, ChevronDown, Send
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AppHeader } from '@/components/layout/app-header';
@@ -559,6 +559,34 @@ export default function Dashboard() {
     });
   };
 
+  const handleShareStatus = () => {
+    if (!aggregatedStats) return;
+
+    const completion = aggregatedStats.total > 0
+      ? Math.round(((aggregatedStats.pass + aggregatedStats.fail + aggregatedStats.block) / aggregatedStats.total) * 100)
+      : 0;
+
+    const message = `*Test Execution Status Update*
+    
+📊 *Progress*: ${completion}% Complete
+✅ *Passed*: ${aggregatedStats.pass}
+❌ *Failed*: ${aggregatedStats.fail}
+🚫 *Blocked*: ${aggregatedStats.block}
+❓ *Query*: ${aggregatedStats.query}
+    
+Total Tests: ${aggregatedStats.total}
+    
+_Generated via TestPad Admin Dashboard_`;
+
+    navigator.clipboard.writeText(message);
+    toast.success('Status copied to clipboard!', {
+      description: 'Opening Slack...'
+    });
+
+    // Try to open Slack Desktop
+    window.location.href = 'slack://open';
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background pb-20 md:pb-0">
@@ -620,6 +648,15 @@ export default function Dashboard() {
           >
             {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <TrendingUp className="mr-2 h-4 w-4" />}
             Analyze Selection
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleShareStatus}
+            disabled={!aggregatedStats}
+          >
+            <Send className="mr-2 h-4 w-4" />
+            Share
           </Button>
           <Separator orientation="vertical" className="h-6 mx-2" />
           <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
