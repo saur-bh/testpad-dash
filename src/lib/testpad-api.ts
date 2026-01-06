@@ -1,6 +1,6 @@
 import type { Project, Folder, Script, Note, ApiError, FolderItem } from '@/types/testpad';
 
-const BASE_URL = '/api/api/v1';
+const BASE_URL = '/testpad-proxy/api/v1';
 
 class TestpadApiClient {
   private apiKey: string | null = null;

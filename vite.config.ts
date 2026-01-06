@@ -8,10 +8,10 @@ export default defineConfig(() => ({
     host: "::",
     port: 8080,
     proxy: {
-      "/api": {
+      "/testpad-proxy": {
         target: "https://api.testpad.com",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
+        rewrite: (path) => path.replace(/^\/testpad-proxy/, ""),
       },
     },
   },
