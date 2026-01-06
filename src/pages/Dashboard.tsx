@@ -4,7 +4,7 @@ import {
   FolderOpen, CheckSquare, TrendingUp,
   Loader2, Copy, Filter, LayoutDashboard,
   Search, PanelLeftClose, PanelLeftOpen, BarChart3,
-  RefreshCw, AlertCircle, CheckCircle
+  RefreshCw, AlertCircle, CheckCircle, ChevronDown
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AppHeader } from '@/components/layout/app-header';
@@ -25,6 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import FailedTestsList from '@/components/ui/failed-tests-list';
 import { TesterKanbanBoard } from '@/components/ui/tester-kanban-board';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 interface SelectedFolder {
@@ -47,7 +48,7 @@ export default function Dashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [detailedScripts, setDetailedScripts] = useState<Script[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFailingOnly, setShowFailingOnly] = useState(false);
 
@@ -137,8 +138,8 @@ export default function Dashboard() {
   };
 
   // Analyze selected folders
-  const analyzeSelectedFolders = async () => {
-    if (selectedFolders.length === 0) return;
+  const analyzeSelectedFolders = async (foldersToAnalyze: SelectedFolder[] = selectedFolders) => {
+    if (foldersToAnalyze.length === 0) return;
 
     setIsAnalyzing(true);
     setAggregatedStats(null); // Reset stats while analyzing
@@ -147,7 +148,7 @@ export default function Dashboard() {
       // Aggregate known progress immediately
       const agg: Progress = { total: 0, pass: 0, fail: 0, block: 0, query: 0, summary: '' };
 
-      selectedFolders.forEach(({ folderItem }) => {
+      foldersToAnalyze.forEach(({ folderItem }) => {
         const scripts = getAllScripts(folderItem);
         scripts.forEach(script => {
           const latestRun = getLatestRun(script.runs);
@@ -167,7 +168,7 @@ export default function Dashboard() {
 
       // Fetch detailed scripts in background for improved data
       const scriptIds = new Set<number>();
-      selectedFolders.forEach(({ folderItem }) => {
+      foldersToAnalyze.forEach(({ folderItem }) => {
         getAllScripts(folderItem).forEach(s => scriptIds.add(Number(s.id)));
       });
 
@@ -185,6 +186,59 @@ export default function Dashboard() {
     } catch (e: unknown) {
       console.error('Error analyzing folders', e);
     } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Simplified Project Selection Handler
+  const handleSimpleProjectSelect = async (projectIdStr: string) => {
+    const projectId = parseInt(projectIdStr);
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+
+    // Reset UI state for loading
+    setAggregatedStats(null);
+    setDetailedScripts([]);
+    setIsAnalyzing(true); // Show global loading state
+    
+    // Set single project selection
+    setSelectedProjects(new Set([projectId]));
+    
+    try {
+      // Fetch folders
+      const foldersData = await testpadApi.getFolders(projectId);
+      const folders = foldersData.contents || [];
+      
+      // Update folder cache
+      setProjectFolders(prev => new Map(prev).set(projectId, folders));
+
+      // Auto-select ALL folders recursively
+      const allFolderItems: SelectedFolder[] = [];
+      const traverse = (items: FolderItem[]) => {
+        items.forEach(item => {
+          if (item.type === 'folder') {
+            allFolderItems.push({
+              projectId,
+              projectName: project.name,
+              folderId: String(item.id),
+              folderName: item.name,
+              folderItem: item
+            });
+            if (item.contents) traverse(item.contents);
+          }
+        });
+      };
+      traverse(folders);
+      
+      // Update selection state
+      setSelectedFolders(allFolderItems);
+      
+      // Trigger analysis with the new set of folders
+      await analyzeSelectedFolders(allFolderItems);
+      
+    } catch (err) {
+      console.error('Failed to load project:', err);
+      toast.error('Failed to load project data');
       setIsAnalyzing(false);
     }
   };
@@ -530,13 +584,23 @@ export default function Dashboard() {
       {/* Quick Actions Toolbar */}
       <div className="border-b bg-card/50 backdrop-blur sticky top-14 z-30 px-4 py-2 flex items-center justify-between gap-4 overflow-x-auto">
         <div className="flex items-center gap-2">
+          <Select onValueChange={handleSimpleProjectSelect}>
+            <SelectTrigger className="w-[200px] bg-background border-input shadow-sm h-9">
+              <div className="flex items-center gap-2 truncate">
+                <FolderOpen className="h-4 w-4 shrink-0 opacity-50" />
+                <SelectValue placeholder="Select Project" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {projects.map(p => (
+                <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Button size="sm" onClick={() => navigate('/create-round')} className="whitespace-nowrap bg-primary/90 hover:bg-primary shadow-sm hover:shadow-md transition-all">
             <Copy className="mr-2 h-4 w-4" />
-            Create Test Round
-          </Button>
-          <Button size="sm" variant="outline" className="whitespace-nowrap hover:bg-accent">
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            All Projects
+            Create Round
           </Button>
           <Button size="sm" variant="outline" className="whitespace-nowrap hover:bg-accent">
             <BarChart3 className="mr-2 h-4 w-4" />
@@ -550,7 +614,7 @@ export default function Dashboard() {
           </Badge>
           <Button
             size="sm"
-            onClick={analyzeSelectedFolders}
+            onClick={() => analyzeSelectedFolders()}
             disabled={selectedFolders.length === 0 || isAnalyzing}
             variant={aggregatedStats ? "secondary" : "default"}
           >
