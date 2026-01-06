@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FileText, Play, ChevronRight, Clock, User } from 'lucide-react';
+import { FileText, Play, ChevronRight, Clock, User, Mail } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AppHeader } from '@/components/layout/app-header';
 import { BottomNav } from '@/components/layout/bottom-nav';
@@ -9,8 +9,10 @@ import { ResultBadge } from '@/components/ui/result-badge';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CreateRunDialog } from '@/components/ui/create-run-dialog';
 import { testpadApi } from '@/lib/testpad-api';
 import type { Script, ApiError } from '@/types/testpad';
+import { cn } from '@/lib/utils';
 
 export default function ScriptDetail() {
   const { scriptId } = useParams();
@@ -75,13 +77,13 @@ export default function ScriptDetail() {
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
-      <AppHeader 
-        title={script?.name || 'Script'} 
-        showBack 
+      <AppHeader
+        title={script?.name || 'Script'}
+        showBack
         onRefresh={() => fetchData(true)}
         isRefreshing={isRefreshing}
       />
-      
+
       <main className="container py-6">
         {error && (
           <ErrorBanner
@@ -102,10 +104,18 @@ export default function ScriptDetail() {
                     <FileText className="h-6 w-6 text-info" />
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-xl font-bold">{script.name}</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {script.tests?.length || 0} tests • {script.runs?.length || 0} runs
-                    </p>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <h2 className="text-xl font-bold">{script.name}</h2>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {script.tests?.length || 0} tests • {script.runs?.length || 0} runs
+                        </p>
+                      </div>
+                      <CreateRunDialog
+                        scriptId={script.id}
+                        onRunCreated={() => fetchData(true)}
+                      />
+                    </div>
                     {script.progress && (
                       <div className="mt-4">
                         <ProgressBar progress={script.progress} height="md" showLabels />
@@ -163,20 +173,55 @@ export default function ScriptDetail() {
                       >
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
-                            <div className="space-y-2">
+                            <div className="flex-1 space-y-3">
                               <div className="flex items-center gap-4">
                                 <div className="rounded-lg bg-warning/10 p-2">
                                   <Play className="h-4 w-4 text-warning" />
                                 </div>
-                                <div>
-                                  <p className="font-medium">Run #{run.id.slice(-6)}</p>
-                                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                                    {run.tester && (
-                                      <span className="flex items-center gap-1">
-                                        <User className="h-3 w-3" />
-                                        {run.tester}
-                                      </span>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="font-medium">Run #{run.id.slice(-6)}</p>
+                                    {/* Run State Badge */}
+                                    {run.state && (
+                                      <div className={cn(
+                                        "px-2 py-1 rounded-full text-xs font-medium",
+                                        run.state === 'complete' && "bg-chart-pass/20 text-chart-pass",
+                                        run.state === 'started' && "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400",
+                                        run.state === 'new' && "bg-muted text-muted-foreground"
+                                      )}>
+                                        {run.state === 'complete' ? '✓ Complete' :
+                                          run.state === 'started' ? '⟳ In Progress' :
+                                            '○ New'}
+                                      </div>
                                     )}
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-1">
+                                    {/* Assignee Info */}
+                                    {/* Assignee Info */}
+                                    {(() => {
+                                      const assigneeName = run.assignee?.name || run.tester || run.headers?._tester;
+                                      const assigneeEmail = run.assignee?.email;
+
+                                      if (!assigneeName) return null;
+
+                                      return (
+                                        <div className="flex items-center gap-2">
+                                          <User className="h-3 w-3" />
+                                          <div className="flex flex-col">
+                                            <span className="font-medium text-foreground">
+                                              {assigneeName}
+                                            </span>
+                                            {assigneeEmail && (
+                                              <span className="text-xs flex items-center gap-1">
+                                                <Mail className="h-3 w-3" />
+                                                {assigneeEmail}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
                                     {run.created && (
                                       <span className="flex items-center gap-1">
                                         <Clock className="h-3 w-3" />
@@ -190,7 +235,7 @@ export default function ScriptDetail() {
                                 <ProgressBar progress={run.progress} height="sm" />
                               )}
                             </div>
-                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                            <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
                           </div>
                         </CardContent>
                       </Card>
@@ -208,7 +253,7 @@ export default function ScriptDetail() {
           </>
         )}
       </main>
-      
+
       <BottomNav />
     </div>
   );

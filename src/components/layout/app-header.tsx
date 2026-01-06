@@ -1,6 +1,7 @@
 import { RefreshCw, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { ProjectSelector } from '@/components/ui/project-selector';
 
 interface AppHeaderProps {
   title: string;
@@ -8,9 +9,19 @@ interface AppHeaderProps {
   isRefreshing?: boolean;
   showSettings?: boolean;
   showBack?: boolean;
+  showProjectSelector?: boolean;
+  currentProjectId?: number;
 }
 
-export function AppHeader({ title, onRefresh, isRefreshing, showSettings = true, showBack }: AppHeaderProps) {
+export function AppHeader({
+  title,
+  onRefresh,
+  isRefreshing,
+  showSettings = true,
+  showBack,
+  showProjectSelector = false,
+  currentProjectId
+}: AppHeaderProps) {
   const navigate = useNavigate();
 
   return (
@@ -24,7 +35,11 @@ export function AppHeader({ title, onRefresh, isRefreshing, showSettings = true,
           )}
           <h1 className="text-xl font-bold">{title}</h1>
         </div>
+
         <div className="flex items-center gap-2">
+          {showProjectSelector && (
+            <ProjectSelector currentProjectId={currentProjectId} />
+          )}
           {onRefresh && (
             <Button
               variant="outline"

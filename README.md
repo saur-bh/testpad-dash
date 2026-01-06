@@ -1,73 +1,124 @@
-# Welcome to your Lovable project
+# TestPad Admin Dashboard
 
-## Project info
+A modern admin dashboard for managing Testpad projects, folders, scripts, runs, and analytics. Connects directly to the Testpad API via a proxy and provides optimized data loading with rich visualizations.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Overview
 
-## How can I edit this code?
+- Select multiple projects and folders to analyze the latest test runs.
+- Visualize totals, pass/fail/blocked/query counts, completion rate, and result distribution.
+- Create a “Test Round” by duplicating a folder’s scripts and auto-creating assigned runs.
+- Browse projects with a simplified tree that includes latest run metadata.
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- React 18 + TypeScript + Vite
+- Tailwind CSS + shadcn/ui (Radix UI) + Lucide Icons
+- React Router DOM
+- TanStack Query (React Query)
+- Recharts
+- React Hook Form + Zod
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Quick Start
 
-Changes made via Lovable will be committed automatically to this repo.
+1. Install dependencies:
+   
+```bash
+npm install
+```
 
-**Use your preferred IDE**
+2. Configure your Testpad API key inside the app:
+   - Open the app and go to the “Connect” screen
+   - Paste your API key; it is stored in localStorage
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Start the dev server:
+   
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+4. Open:
+   
+```
+http://localhost:5173
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Environment & API
 
-**Use GitHub Codespaces**
+- Base URL is proxied via Vite:
+  - Dev: `/api/api/v1` → `https://api.testpad.com/api/v1`
+  - Configure in [vite.config.ts](file:///Users/saurabhperson/Desktop/testpad-dash/vite.config.ts)
+- All requests include `Authorization: apikey <TOKEN>` and `X-API-Key` headers.
+- API key is managed by [testpad-api.ts](file:///Users/saurabhperson/Desktop/testpad-dash/src/lib/testpad-api.ts).
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Core Pages
 
-## What technologies are used for this project?
+- Connect: [ConnectScreen.tsx](file:///Users/saurabhperson/Desktop/testpad-dash/src/pages/ConnectScreen.tsx)
+- Dashboard: [Dashboard.tsx](file:///Users/saurabhperson/Desktop/testpad-dash/src/pages/Dashboard.tsx)
+- Projects: [ProjectList.tsx](file:///Users/saurabhperson/Desktop/testpad-dash/src/pages/ProjectList.tsx)
+- Project Detail: [ProjectDetail.tsx](file:///Users/saurabhperson/Desktop/testpad-dash/src/pages/ProjectDetail.tsx)
+- Script Detail: [ScriptDetail.tsx](file:///Users/saurabhperson/Desktop/testpad-dash/src/pages/ScriptDetail.tsx)
+- Create Test Round: [CreateTestRound.tsx](file:///Users/saurabhperson/Desktop/testpad-dash/src/pages/CreateTestRound.tsx)
 
-This project is built with:
+## Data Loading Strategy
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Projects: single lightweight fetch.
+- Folders/scripts: fetched only when needed.
+- Simplified folder tree uses `runs=full` to include latest run status inline.
+- Dashboard aggregates latest run progress metrics and supports deep failure analysis on demand.
 
-## How can I deploy this project?
+## API Endpoints Used
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+- Get projects: `GET /projects`
+- Get project: `GET /projects/{id}`
+- Get folders: `GET /projects/{id}/folders` with parameters:
+  - `runs=full`, `subfolders=all`, `scripts=terse`, `progress=full`
+- Get script: `GET /scripts/{id}?runs=full&tests=full`
+- Create folder: `POST /projects/{id}/folders`
+- Create script in folder: `POST /projects/{id}/folders/{folderId}/scripts`
 
-## Can I connect a custom domain to my Lovable project?
+## Create Test Round Workflow
 
-Yes, you can!
+1. Select a project and a source folder.
+2. Name the new round; optionally select multiple testers.
+3. The app creates a new folder.
+4. Each script in the source folder is duplicated into the new folder.
+5. A run is created with assigned tester(s) and headers.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Implemented in [testpad-api.ts](file:///Users/saurabhperson/Desktop/testpad-dash/src/lib/testpad-api.ts#L273-L455) and wired in [CreateTestRound.tsx](file:///Users/saurabhperson/Desktop/testpad-dash/src/pages/CreateTestRound.tsx).
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Commands
+
+- Dev: `npm run dev`
+- Build: `npm run build`
+- Preview: `npm run preview`
+- Lint: `npm run lint`
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── charts/           # Recharts components
+│   ├── layout/           # Header, BottomNav
+│   ├── ui/               # shadcn/ui primitives & feature UIs
+├── hooks/                # Custom hooks
+├── lib/                  # API client, helpers
+├── pages/                # Route pages
+├── types/                # TypeScript interfaces
+└── App.tsx               # Routes configuration
+```
+
+## Troubleshooting
+
+- 401 errors: re-enter a valid API key on the Connect screen.
+- 429 errors: the client uses backoff, but heavy operations may need retries.
+- If CORS blocks requests, ensure Vite proxy is running and configured.
+
+## Security
+
+- Do not commit secrets; API key is stored in localStorage and sent via headers.
+- No secrets are written to repo files.
+
+## License
+
+Private and proprietary.

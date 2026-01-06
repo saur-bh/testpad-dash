@@ -8,8 +8,10 @@ export interface Project {
 export interface FolderItem {
   id: string | number;
   name: string;
-  type: 'folder' | 'script';
+  type: 'folder' | 'script' | 'note';
   contents?: FolderItem[];
+  progress?: Progress;
+  runs?: Run[];  // Added to support run data from folder API
 }
 
 export interface Folder {
@@ -22,14 +24,22 @@ export interface Folder {
 export interface Test {
   id: string;
   name: string;
+  text?: string; // API often uses 'text' instead of 'name'
   indent: number;
 }
 
 export interface Run {
   id: string;
-  tester?: string;
   created?: string;
+  state?: 'new' | 'started' | 'complete';
+  label?: string;
+  tester?: string; // Deprecated, use assignee.name instead
   headers: Record<string, string>;
+  assignee?: {
+    id: string | number;
+    name: string;
+    email: string;
+  };
   results: Record<string, Result>;
   progress: Progress;
 }
@@ -53,7 +63,9 @@ export interface Progress {
 export interface Script {
   id: number;
   name: string;
+  description?: string;
   tests: Test[];
+  fields?: Array<{ id: string; label: string; show: boolean }>;
   runs: Run[];
   progress: Progress;
 }

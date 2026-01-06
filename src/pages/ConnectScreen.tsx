@@ -38,15 +38,12 @@ export default function ConnectScreen() {
         testpadApi.clearApiKey();
         setError('Invalid API key. Please check and try again.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       testpadApi.clearApiKey();
-      if (err.status === 401) {
-        setError('Invalid API key. Please check and try again.');
-      } else if (err.status === 429) {
-        setError(`Rate limit exceeded. Please wait ${err.retryAfter || 60} seconds.`);
-      } else {
-        setError(err.message || 'Failed to connect. Please try again.');
-      }
+      const e = err as { status?: number; retryAfter?: number; message?: string };
+      if (e.status === 401) setError('Invalid API key. Please check and try again.');
+      else if (e.status === 429) setError(`Rate limit exceeded. Please wait ${e.retryAfter || 60} seconds.`);
+      else setError(e.message || 'Failed to connect. Please try again.');
     } finally {
       setIsValidating(false);
     }

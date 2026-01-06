@@ -1,23 +1,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FolderOpen, Calendar, FileText, ChevronRight } from 'lucide-react';
+import { FolderOpen, Calendar, ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AppHeader } from '@/components/layout/app-header';
 import { BottomNav } from '@/components/layout/bottom-nav';
-import { ProgressBar } from '@/components/ui/progress-bar';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { testpadApi } from '@/lib/testpad-api';
-import type { Project, Progress, ApiError } from '@/types/testpad';
-
-interface ProjectWithMeta extends Project {
-  scriptCount?: number;
-  progress?: Progress;
-}
+import type { Project, ApiError } from '@/types/testpad';
 
 export default function ProjectList() {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<ProjectWithMeta[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
@@ -27,43 +21,9 @@ export default function ProjectList() {
     setError(null);
 
     try {
+      // Only fetch basic project list - no additional data
       const projectList = await testpadApi.getProjects();
-      
-      // Fetch additional data for each project
-      const projectsWithMeta = await Promise.all(
-        projectList.map(async (project) => {
-          try {
-            const folders = await testpadApi.getFolders(project.id);
-            const scriptIds = testpadApi.extractScriptIds(folders);
-            
-            // Get aggregated progress from first few scripts
-            let progress: Progress = { total: 0, pass: 0, fail: 0, block: 0, query: 0, summary: '' };
-            
-            for (const scriptId of scriptIds.slice(0, 5)) {
-              try {
-                const script = await testpadApi.getScript(scriptId);
-                progress.total += script.progress?.total || 0;
-                progress.pass += script.progress?.pass || 0;
-                progress.fail += script.progress?.fail || 0;
-                progress.block += script.progress?.block || 0;
-                progress.query += script.progress?.query || 0;
-              } catch (e) {
-                // Continue
-              }
-            }
-
-            return {
-              ...project,
-              scriptCount: scriptIds.length,
-              progress,
-            };
-          } catch (e) {
-            return { ...project, scriptCount: 0 };
-          }
-        })
-      );
-
-      setProjects(projectsWithMeta);
+      setProjects(projectList);
     } catch (err: any) {
       if (err.status === 401) {
         testpadApi.clearApiKey();
@@ -115,12 +75,13 @@ export default function ProjectList() {
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
-      <AppHeader 
-        title="Projects" 
+      <AppHeader
+        title="Projects"
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
+        showProjectSelector={true}
       />
-      
+
       <main className="container py-6">
         {error && (
           <ErrorBanner
@@ -170,15 +131,7 @@ export default function ProjectList() {
                           <Calendar className="h-4 w-4" />
                           {formatDate(project.created)}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <FileText className="h-4 w-4" />
-                          {project.scriptCount || 0} scripts
-                        </span>
                       </div>
-
-                      {project.progress && project.progress.total > 0 && (
-                        <ProgressBar progress={project.progress} height="sm" />
-                      )}
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </div>
@@ -188,7 +141,7 @@ export default function ProjectList() {
           </div>
         )}
       </main>
-      
+
       <BottomNav />
     </div>
   );

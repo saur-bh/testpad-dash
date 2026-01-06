@@ -5,13 +5,14 @@ interface ProgressBarProps {
   progress: Progress;
   showLabels?: boolean;
   className?: string;
-  height?: 'sm' | 'md' | 'lg';
+  height?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 const heightConfig = {
   sm: 'h-2',
   md: 'h-4',
   lg: 'h-6',
+  xl: 'h-8',
 };
 
 export function ProgressBar({ progress, showLabels = false, className, height = 'md' }: ProgressBarProps) {

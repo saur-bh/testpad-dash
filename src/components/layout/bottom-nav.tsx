@@ -1,10 +1,11 @@
-import { Home, FolderOpen, BarChart3, Settings } from 'lucide-react';
+import { Home, FolderOpen, BarChart3, Settings, Copy } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { to: '/dashboard', icon: Home, label: 'Dashboard' },
   { to: '/projects', icon: FolderOpen, label: 'Projects' },
+  { to: '/create-round', icon: Copy, label: 'Create Round' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
