@@ -1,8 +1,6 @@
 import type { Project, Folder, Script, Note, ApiError, FolderItem } from '@/types/testpad';
 
-const DEV_BASE = '/api/api/v1';
-const PROD_BASE = 'https://api.testpad.com/api/v1';
-const BASE_URL = import.meta.env.DEV ? DEV_BASE : PROD_BASE;
+const BASE_URL = '/api/api/v1';
 
 class TestpadApiClient {
   private apiKey: string | null = null;
